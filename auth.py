@@ -2,9 +2,11 @@ from pymongo import MongoClient
 import hashlib
 import streamlit as st
 import re
+from dotenv import load_dotenv
 
+load_dotenv()
 # Replace with your MongoDB connection string from secrets or env variables
-MONGO_URI = st.secrets.get("mongo_uri", "mongodb://localhost:27017/")
+MONGO_URI = st.secrets.get("MONGODB_URI", "mongodb://localhost:27017/")
 client = MongoClient(MONGO_URI)
 db = client["user_db"]
 users_collection = db["users"]

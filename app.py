@@ -131,7 +131,6 @@ def generate_and_save_proof(topic):
 # Sidebar
 def render_sidebar():
     with st.sidebar:
-        st.image("https://via.placeholder.com/150x150.png?text=TP", width=100)
 
         if st.session_state.logged_in:
             st.markdown(f"### Welcome, {st.session_state.username} 👋")
