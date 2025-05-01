@@ -3,20 +3,15 @@ import base64
 import time
 import streamlit as st
 
-# Get GitHub token from Streamlit secrets (no error if missing)
-GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", None)
 
-def search_github(query, github_token=GITHUB_TOKEN, max_results=5):
+def search_github(query, max_results=5):
     """
     Search GitHub repositories and fetch details including README content.
+    Uses public API without requiring authentication token.
     """
     headers = {
         "Accept": "application/vnd.github.v3+json"
     }
-
-    # Only add Authorization header if token is available
-    if github_token:
-        headers["Authorization"] = f"token {github_token}"
 
     search_url = "https://api.github.com/search/repositories"
     params = {
@@ -28,11 +23,6 @@ def search_github(query, github_token=GITHUB_TOKEN, max_results=5):
 
     try:
         response = requests.get(search_url, headers=headers, params=params)
-
-        # Silently ignore if unauthorized
-        if response.status_code == 401:
-            return []
-
         response.raise_for_status()
         repos = response.json().get("items", [])
         results = []
@@ -52,7 +42,7 @@ def search_github(query, github_token=GITHUB_TOKEN, max_results=5):
 
             # Try to fetch README from known branches
             try:
-                time.sleep(0.5)  # Respect rate limits
+                time.sleep(1)  # Increased delay to respect rate limits for unauthenticated requests
 
                 for branch in ["main", "master"]:
                     readme_url = f"https://api.github.com/repos/{repo['full_name']}/contents/README.md?ref={branch}"
@@ -71,27 +61,56 @@ def search_github(query, github_token=GITHUB_TOKEN, max_results=5):
 
         return results
 
-    except Exception:
-        return []  # Silently fail on other exceptions
+    except Exception as e:
+        st.error(f"Error searching GitHub: {e}")
+        return []
 
 
-def get_repo_contents(repo_name, path="", github_token=GITHUB_TOKEN):
+def get_repo_contents(repo_name, path=""):
     """
-    Get the contents of a GitHub repository path.
+    Get the contents of a GitHub repository path without authentication.
     """
     headers = {
         "Accept": "application/vnd.github.v3+json"
     }
-    if github_token:
-        headers["Authorization"] = f"token {github_token}"
 
     url = f"https://api.github.com/repos/{repo_name}/contents/{path}"
 
     try:
         response = requests.get(url, headers=headers)
-        if response.status_code == 401:
-            return []  # Silent fail
         response.raise_for_status()
         return response.json()
-    except Exception:
-        return []  # Silent fail
+    except Exception as e:
+        st.error(f"Error fetching repo contents: {e}")
+        return []
+
+
+# Example Streamlit UI implementation
+def github_search_app():
+    st.title("GitHub Repository Search")
+
+    query = st.text_input("Search for repositories:", "")
+    max_results = st.slider("Maximum number of results:", 1, 10, 5)
+
+    if st.button("Search") and query:
+        with st.spinner("Searching GitHub..."):
+            results = search_github(query, max_results=max_results)
+
+        if results:
+            st.success(f"Found {len(results)} repositories")
+            for repo in results:
+                with st.expander(f"{repo['title']} ({repo['stars']} ⭐)"):
+                    st.markdown(f"**Description:** {repo['description']}")
+                    st.markdown(f"**Language:** {repo['language'] or 'Not specified'}")
+                    st.markdown(f"**Owner:** {repo['owner']}")
+                    st.markdown(f"**URL:** [{repo['url']}]({repo['url']})")
+
+                    if repo['readme'] != "No README found.":
+                        with st.expander("View README"):
+                            st.markdown(repo['readme'])
+        else:
+            st.warning("No repositories found for your search query.")
+
+# Uncomment to run the app
+# if __name__ == "__main__":
+#     github_search_app()
