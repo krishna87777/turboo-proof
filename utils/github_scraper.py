@@ -4,10 +4,11 @@ import time
 import streamlit as st
 
 
-def search_github(query, max_results=5):
+def search_github(query, github_token=None, max_results=5):
     """
     Search GitHub repositories and fetch details including README content.
     Uses public API without requiring authentication token.
+    The github_token parameter is kept for backward compatibility but is no longer used.
     """
     headers = {
         "Accept": "application/vnd.github.v3+json"
@@ -66,9 +67,10 @@ def search_github(query, max_results=5):
         return []
 
 
-def get_repo_contents(repo_name, path=""):
+def get_repo_contents(repo_name, path="", github_token=None):
     """
     Get the contents of a GitHub repository path without authentication.
+    The github_token parameter is kept for backward compatibility but is no longer used.
     """
     headers = {
         "Accept": "application/vnd.github.v3+json"
