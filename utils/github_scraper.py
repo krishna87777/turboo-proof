@@ -2,31 +2,25 @@ import requests
 import base64
 import time
 import streamlit as st
+import os
+from dotenv import load_dotenv
 
+# Load environment variables
+load_dotenv()
 
-def search_github(query, github_token=None, max_results=5):
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+
+def search_github(query, github_token=GITHUB_TOKEN, max_results=5):
     """
-    Search GitHub repositories and fetch their details including README content.
-
-    Args:
-        query (str): The search query for repositories
-        github_token (str): Optional GitHub API token for authentication
-        max_results (int): Maximum number of results to return
-
-    Returns:
-        list: A list of dictionaries containing repository information
+    Search GitHub repositories and fetch details including README content.
     """
-    # Set up headers for API request
     headers = {
         "Accept": "application/vnd.github.v3+json"
     }
-
-    # Add token if provided (increases rate limits)
     if github_token:
         headers["Authorization"] = f"token {github_token}"
 
-    # Prepare search URL with query parameters
-    search_url = f"https://api.github.com/search/repositories"
+    search_url = "https://api.github.com/search/repositories"
     params = {
         "q": query,
         "sort": "stars",
@@ -35,21 +29,17 @@ def search_github(query, github_token=None, max_results=5):
     }
 
     try:
-        # Make the search request
         response = requests.get(search_url, headers=headers, params=params)
-        response.raise_for_status()  # Raise exception for HTTP errors
-
-        # Process results
+        response.raise_for_status()
         repos = response.json().get("items", [])
         results = []
 
         for repo in repos:
-            # Get repository basic info
             repo_info = {
                 "title": repo["name"],
                 "full_name": repo["full_name"],
                 "url": repo["html_url"],
-                "description": repo["description"] or "No description available.",
+                "description": repo.get("description") or "No description available.",
                 "stars": repo["stargazers_count"],
                 "language": repo["language"],
                 "owner": repo["owner"]["login"],
@@ -57,49 +47,38 @@ def search_github(query, github_token=None, max_results=5):
                 "readme": "No README found."
             }
 
-            # Try to fetch README content
+            # Try to fetch README from known branches
             try:
-                # Rate limiting - add small delay between requests
-                time.sleep(0.5)
+                time.sleep(0.5)  # Respect rate limits
 
-                # Try main branch first (either master or main)
-                for branch in ["master", "main"]:
+                for branch in ["main", "master"]:
                     readme_url = f"https://api.github.com/repos/{repo['full_name']}/contents/README.md?ref={branch}"
                     readme_response = requests.get(readme_url, headers=headers)
 
                     if readme_response.status_code == 200:
-                        # README found, decode content
                         readme_data = readme_response.json()
-                        if readme_data.get("content") and readme_data.get("encoding") == "base64":
-                            readme_content = base64.b64decode(readme_data["content"]).decode('utf-8', errors='replace')
+                        if readme_data.get("encoding") == "base64":
+                            readme_content = base64.b64decode(readme_data["content"]).decode("utf-8", errors="replace")
                             repo_info["readme"] = readme_content
                             break
             except Exception as e:
-                # If README fetch fails, continue with default message
-                pass
+                st.warning(f"Failed to fetch README for {repo['full_name']}: {e}")
 
             results.append(repo_info)
 
         return results
 
     except Exception as e:
-        st.error(f"Error searching GitHub: {str(e)}")
+        st.error(f"GitHub search failed: {str(e)}")
         return []
 
-
-def get_repo_contents(repo_name, path="", github_token=None):
+def get_repo_contents(repo_name, path="", github_token=GITHUB_TOKEN):
     """
-    Get contents of a directory in a GitHub repository.
-
-    Args:
-        repo_name (str): Full repository name (owner/repo)
-        path (str): Path within the repository
-        github_token (str): GitHub API token
-
-    Returns:
-        list: Contents of the directory
+    Get the contents of a GitHub repository path.
     """
-    headers = {"Accept": "application/vnd.github.v3+json"}
+    headers = {
+        "Accept": "application/vnd.github.v3+json"
+    }
     if github_token:
         headers["Authorization"] = f"token {github_token}"
 
@@ -110,5 +89,5 @@ def get_repo_contents(repo_name, path="", github_token=None):
         response.raise_for_status()
         return response.json()
     except Exception as e:
-        st.error(f"Error fetching repo contents: {str(e)}")
+        st.error(f"Error fetching contents from {repo_name}/{path}: {str(e)}")
         return []
