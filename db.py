@@ -1,9 +1,8 @@
-import os
+import streamlit as st
 from pymongo import MongoClient
-from dotenv import load_dotenv
 
-load_dotenv()
-MONGO_URI = os.getenv("MONGO_URI")
+# Use MONGO_URI from Streamlit secrets
+MONGO_URI = st.secrets["MONGO_URI"]
 
 client = MongoClient(MONGO_URI)
 db = client["turbo_proof"]

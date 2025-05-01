@@ -2,13 +2,9 @@ import requests
 import base64
 import time
 import streamlit as st
-import os
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
-
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+# Get GitHub token from Streamlit secrets
+GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN")
 
 def search_github(query, github_token=GITHUB_TOKEN, max_results=5):
     """

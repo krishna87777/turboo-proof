@@ -1,20 +1,15 @@
 import google.generativeai as genai
-import os
-from dotenv import load_dotenv
+import streamlit as st
 from utils.github_scraper import search_github
 from utils.arxiv_scraper import search_arxiv
 from utils.vector_store import VectorStore
 
-# Load environment variables from .env
-load_dotenv()
-
-
-# Configure the Google Generative AI client
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+# Configure the Google Generative AI client using Streamlit secrets
+genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
 def generate_proof(topic):
-    # Check for debug mode
-    if os.getenv("DEBUG_MODE") == "true":
+    # Optional debug mode flag (optional in secrets)
+    if st.secrets.get("DEBUG_MODE", "false").lower() == "true":
         return "DEBUG_MODE is enabled. No proof generated."
 
     # Step 1: Fetch documents

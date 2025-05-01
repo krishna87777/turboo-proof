@@ -2,12 +2,9 @@ from pymongo import MongoClient
 import hashlib
 import streamlit as st
 import re
-from dotenv import load_dotenv
-import os
 
-load_dotenv()
-# Replace with your MongoDB connection string from secrets or env variables
-MONGO_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/")
+# Use MongoDB URI from Streamlit secrets
+MONGO_URI = st.secrets["MONGO_URI"]
 client = MongoClient(MONGO_URI)
 db = client["user_db"]
 users_collection = db["users"]
@@ -35,7 +32,6 @@ def validate_password(password):
 
 def signup(username, email, password):
     """Register a new user."""
-    # Input validation
     if not username or not email or not password:
         return False, "All fields are required."
 
@@ -48,15 +44,12 @@ def signup(username, email, password):
     if not validate_password(password):
         return False, "Password must be at least 8 characters and include both letters and numbers."
 
-    # Check if username exists
     if users_collection.find_one({"username": username}):
         return False, "Username already exists."
 
-    # Check if email exists
     if users_collection.find_one({"email": email}):
         return False, "Email already registered."
 
-    # Create user record
     hashed_pw = hash_password(password)
     user = {
         "username": username,
@@ -77,6 +70,5 @@ def login(username, password):
 
 def get_user_info(username):
     """Get user profile information."""
-    user = users_collection.find_one({"username": username},
-                                     {"password": 0})  # Exclude password
+    user = users_collection.find_one({"username": username}, {"password": 0})
     return user if user else {}
