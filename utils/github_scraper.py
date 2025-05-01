@@ -3,8 +3,8 @@ import base64
 import time
 import streamlit as st
 
-# Get GitHub token from Streamlit secrets
-GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN")
+# Get GitHub token from Streamlit secrets (no error if missing)
+GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", None)
 
 def search_github(query, github_token=GITHUB_TOKEN, max_results=5):
     """
@@ -13,6 +13,8 @@ def search_github(query, github_token=GITHUB_TOKEN, max_results=5):
     headers = {
         "Accept": "application/vnd.github.v3+json"
     }
+
+    # Only add Authorization header if token is available
     if github_token:
         headers["Authorization"] = f"token {github_token}"
 
@@ -26,6 +28,11 @@ def search_github(query, github_token=GITHUB_TOKEN, max_results=5):
 
     try:
         response = requests.get(search_url, headers=headers, params=params)
+
+        # Silently ignore if unauthorized
+        if response.status_code == 401:
+            return []
+
         response.raise_for_status()
         repos = response.json().get("items", [])
         results = []
@@ -57,16 +64,16 @@ def search_github(query, github_token=GITHUB_TOKEN, max_results=5):
                             readme_content = base64.b64decode(readme_data["content"]).decode("utf-8", errors="replace")
                             repo_info["readme"] = readme_content
                             break
-            except Exception as e:
-                st.warning(f"Failed to fetch README for {repo['full_name']}: {e}")
+            except Exception:
+                pass  # Ignore README errors silently
 
             results.append(repo_info)
 
         return results
 
-    except Exception as e:
-        st.error(f"GitHub search failed: {str(e)}")
-        return []
+    except Exception:
+        return []  # Silently fail on other exceptions
+
 
 def get_repo_contents(repo_name, path="", github_token=GITHUB_TOKEN):
     """
@@ -82,8 +89,9 @@ def get_repo_contents(repo_name, path="", github_token=GITHUB_TOKEN):
 
     try:
         response = requests.get(url, headers=headers)
+        if response.status_code == 401:
+            return []  # Silent fail
         response.raise_for_status()
         return response.json()
-    except Exception as e:
-        st.error(f"Error fetching contents from {repo_name}/{path}: {str(e)}")
-        return []
+    except Exception:
+        return []  # Silent fail
