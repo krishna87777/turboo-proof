@@ -1,0 +1,9 @@
+streamlit
+pymongo
+bcrypt
+python-dotenv
+sentence-transformers
+faiss-cpu
+arxiv
+requests
+google-generativeai
