@@ -8,7 +8,6 @@ from utils.vector_store import VectorStore
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
 def generate_proof(topic):
-    # Optional debug mode flag (optional in secrets)
     if st.secrets.get("DEBUG_MODE", "false").lower() == "true":
         return "DEBUG_MODE is enabled. No proof generated."
 
@@ -36,13 +35,18 @@ def generate_proof(topic):
     The proof should be thorough, well-structured, and include technical details.
     """
 
-    # Step 5: Generate content with error handling
+    # Step 5: Use Gemini Flash 2.0 (Free Tier)
     try:
-        model = genai.GenerativeModel(model_name="gemini-1.5-pro")
+        genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+        model = genai.GenerativeModel("gemini-1.5-flash")
+
         response = model.generate_content(prompt)
         return response.text
+
     except Exception as e:
         return f"Error generating content: {e}"
+
+    return "Failed to generate content after multiple attempts due to rate limiting."
 
 def format_context(documents):
     """Formats document summaries into prompt context text."""
