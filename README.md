@@ -47,7 +47,7 @@ turboproof/
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/turboproof.git
+   git clone https://github.com/krishna87777/turboo-proof
    cd turboproof
    ```
 
